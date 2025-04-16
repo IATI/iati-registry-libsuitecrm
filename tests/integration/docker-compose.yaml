@@ -1,0 +1,46 @@
+name: suitecrm-test
+
+services:
+  db:
+    container_name: db
+    image: mariadb:latest
+    ports:
+      - 3306:3306
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: "suitecrm"
+      MARIADB_USER: "suitecrm"
+      MARIADB_PASSWORD: "suitecrm"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 60s
+      retries: 5
+    volumes:
+      - "db_data:/var/lib/mysql/"
+  crm:
+    container_name: crm
+    build: ./
+    ports:
+      - 8080:8080
+      - 8443:8443
+    environment:
+      SUITECRM_USERNAME: admin
+      SUITECRM_PASSWORD: password
+      SUITECRM_DATABASE_HOST: db
+      SUITECRM_DATABASE_PORT_NUMBER: 3306
+      SUITECRM_DATABASE_NAME: "suitecrm"
+      SUITECRM_DATABASE_USER: "suitecrm"
+      SUITECRM_DATABASE_PASSWORD: "suitecrm"
+    volumes:
+      - "crm_data:/bitnami/suitecrm"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+    driver: local
+  crm_data:
+    driver: local

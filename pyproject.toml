@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libsuitecrm"
+description = "Library for interfacing with the SuiteCRM REST API focused on applications within IATI"
+authors = [{name="IATI Secretariat", email="support@iatistandard.org"}]
+version = "0.1.0"
+requires-python = ">= 3.12.3"
+readme = "README.md"
+license = {file = "LICENSE"}
+dependencies = [
+    "oauthlib>=3.2.2",
+    "requests>=2.32.3",
+    "requests_oauthlib>=2.0.0"
+]
+
+keywords = ["crm", "suitecrm", "iati"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Other Environment",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Office/Business"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "flake8-pyproject",
+    "isort",
+    "pip-tools",
+    "pymysql",
+    "pytest"
+]
+
+[tool.setuptools]
+packages = ["libsuitecrm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/", "tests/integration"]
+pythonpath = ["./", "tests"]
+filterwarnings = [
+    "ignore::urllib3.exceptions.InsecureRequestWarning"
+]
+
+[tool.pip-tools]
+strip-extras = true
+
+[tool.isort]
+py_version=312
+extend_skip = ['__pycache__', '.mypy_cache', '.ve', '.venv']
+skip_gitignore = true
+src_paths = ['libsuitecrm', 'tests']
+line_length = 119
+profile = "black"
+
+[tool.flake8]
+max-line-length = 119
+extend_ignore = ['E203', 'W503', 'E275']
+exclude = ['__pycache__', '.pytest_cache', '.ve', '.venv']
+max_complexity = 7
+
+[tool.black]
+line-length = 119
+target-version = ['py312']
+include=['''libsuitecrm/.*/*.py$''',
+        '''tests/*.py$''',
+        '''tests/integration/.*/*.py$''']
