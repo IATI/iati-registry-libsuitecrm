@@ -303,15 +303,18 @@ class SuiteCRM:
         str
             ID of the created record.
         """
+        entity_name = module_name[:-1] if module_name.endswith("s") else module_name
+
         response = self._post("/Api/V8/module", json={"data": {"type": module_name, "attributes": record_data}})
 
         if "data" not in response:
             logger.error("Attempt to create record failed: response was missing <data> key")
             raise CreateRecordFailed("Response missing data key")
-        if response["data"].get("type", "") != module_name:
+        if response["data"].get("type", "") != entity_name:
             logger.error(
-                "Attempt to create record failed: response module"
-                f"'{response["data"].get("type", "")}' does not match request {module_name}"
+                "Attempt to create record failed: response module entity type "
+                f"'{response["data"].get("type", "")}' does not match request {entity_name} "
+                f" from module {module_name}"
             )
             raise CreateRecordFailed("Cannot understand response from server")
         if response["data"].get("id", None) is None:
@@ -340,6 +343,8 @@ class SuiteCRM:
         str
             ID of the returned record
         """
+        entity_name = module_name[:-1] if module_name.endswith("s") else module_name
+
         response = self._patch(
             "/Api/V8/module", json={"data": {"type": module_name, "id": id, "attributes": record_data}}
         )
@@ -347,10 +352,11 @@ class SuiteCRM:
         if "data" not in response:
             logger.error("Attempt to update record failed: response was missing <data> key")
             raise UpdateRecordFailed("Response missing data key")
-        if response["data"].get("type", "") != module_name:
+        if response["data"].get("type", "") != entity_name:
             logger.error(
-                "Attempt to update record failed: response module"
-                f"'{response["data"].get("type", "")}' does not match request {module_name}"
+                "Attempt to create record failed: response module entity type "
+                f"'{response["data"].get("type", "")}' does not match request {entity_name} "
+                f" from module {module_name}"
             )
             raise UpdateRecordFailed("Cannot understand response from server")
         if response["data"].get("id", None) is None:
