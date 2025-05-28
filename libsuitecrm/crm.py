@@ -285,6 +285,64 @@ class SuiteCRM:
 
         return response
 
+    def get_all_records(
+        self,
+        module_name: str,
+        fields: List[str] = None,
+        page_size: int = 200,
+        sort_dir: str = "ascending",
+        sort_field: str = None,
+        filters: Filter = None,
+    ):
+        """Get a generator which will iterate over all records for a given module in the CRM.
+
+        Calls the endpoint documented at:
+        https://8-x.docs.suitecrm.com/developer/api/developer-setup-guide/json-api/#_get_collection_of_modules
+        repeatedly, following the `next` links until there are no more records to return.
+
+        Parameters
+        ----------
+        module_name : str
+            Module name to get the record(s) from.
+        fields : List[str], optional
+            List of fields to return, by default None.
+        page_size : int, optional
+            Number of records per page, when page_number is not None, by default 200.
+        sort_dir : str, optional
+            Search direction, "ascending" or "descending", by default "ascending".
+        sort_field : str, optional
+            Field to sort on, by default None.
+        filters : Filter, optional
+            Filters to filter down records, by default None.
+
+        Returns
+        -------
+        dict
+
+        Raises
+        ------
+        ValueError
+            If sort direction is invalid.
+        """
+        response = self.get_records(
+            module_name=module_name,
+            fields=fields,
+            page_size=page_size,
+            page_number=1,
+            sort_dir=sort_dir,
+            sort_field=sort_field,
+            filters=filters,
+        )
+
+        while response is not None and len(response["data"]) > 0:
+            for module_record in response["data"]:
+                yield module_record
+
+            if response["links"]["next"] is not None:
+                response = self._get("/Api/{}".format(response["links"]["next"]), params=[])
+            else:
+                response = None
+
     def create_record(self, module_name: str, record_data: dict) -> str:
         """Create a record in a given module in the CRM
 
