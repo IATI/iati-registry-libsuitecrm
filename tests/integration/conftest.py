@@ -3,7 +3,17 @@ import time
 import pytest
 import urllib3
 from helpers import add_oauth_client_credentials, is_suitecrm_installed
-from parameters import CLIENT_ID, CLIENT_SECRET, CLIENT_SECRET_HASHED
+from parameters import (
+    CLIENT_ID,
+    CLIENT_SECRET,
+    CLIENT_SECRET_HASHED,
+    DB_HOST,
+    DB_NAME,
+    DB_PASSWORD,
+    DB_USER,
+    SUITECRM_HTTP_URL,
+    SUITECRM_HTTPS_URL,
+)
 
 import libsuitecrm
 
@@ -42,7 +52,7 @@ def suitecrm_ready():
     while duration < TIMEOUT and not installed:
         duration = time.monotonic() - time_start
         time.sleep(PERIOD - duration % PERIOD)
-        if is_suitecrm_installed("http://127.0.0.1:8080"):
+        if is_suitecrm_installed(SUITECRM_HTTP_URL):
             installed = True
 
     if duration > TIMEOUT:
@@ -50,7 +60,7 @@ def suitecrm_ready():
 
     # Try to add OAuth client credentials to the SuiteCRM database.
     try:
-        add_oauth_client_credentials(CLIENT_ID, CLIENT_SECRET_HASHED)
+        add_oauth_client_credentials(CLIENT_ID, CLIENT_SECRET_HASHED, DB_NAME, DB_HOST, DB_USER, DB_PASSWORD)
     except Exception as err:
         raise err
 
@@ -59,9 +69,7 @@ def suitecrm_ready():
 def crm(suitecrm_ready):
     """Fixture to wait for SuiteCRM to be available and then create a crm object with an access token"""
     urllib3.disable_warnings()
-    _crm = libsuitecrm.SuiteCRM(
-        "https://127.0.0.1:8443", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False
-    )
+    _crm = libsuitecrm.SuiteCRM(SUITECRM_HTTPS_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False)
     _crm.fetch_access_token()
 
     return _crm

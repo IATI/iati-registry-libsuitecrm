@@ -47,7 +47,9 @@ def is_suitecrm_installed(url_base: str) -> bool:
         return False
 
 
-def add_oauth_client_credentials(client_id: str, client_secret_hashed: str):
+def add_oauth_client_credentials(
+    client_id: str, client_secret_hashed: str, db_name: str, db_host: str, db_user: str, db_password: str
+):
     """Add SuiteCRM OAuth2 Client credentials directly into the database
 
     Parameters
@@ -59,10 +61,10 @@ def add_oauth_client_credentials(client_id: str, client_secret_hashed: str):
     """
     try:
         connection = pymysql.connect(
-            host="localhost",
-            user="root",
-            password="rootpassword",
-            db="suitecrm",
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            db=db_name,
             charset="utf8mb4",
             cursorclass=pymysql.cursors.DictCursor,
         )
