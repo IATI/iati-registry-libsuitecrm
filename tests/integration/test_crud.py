@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from helpers import make_random_string
 
@@ -31,3 +33,24 @@ def test_crud_in_accounts(crm):
         crm.get_record_by_id("Account", id)
     assert exc_info.value.status_code == 400
     assert "is not found" in exc_info.value.underlying_msg
+
+
+def test_create_with_id(crm):
+
+    # Make account with specific id and check we get that id back after
+    # the account is created.
+    random_org_name = make_random_string(15)
+    new_id = str(uuid.uuid4())
+    created_id = crm.create_record("Account", {"name": random_org_name, "id": new_id})
+    assert isinstance(created_id, str)
+    assert new_id == created_id
+
+    # Check we can retrieve by the new_id.
+    response = crm.get_record_by_id("Account", created_id, fields=["name"])
+    assert "data" in response
+    assert response["data"].get("type", "") == "Account"
+    assert "attributes" in response["data"]
+    assert response["data"]["attributes"].get("name", "") == random_org_name
+
+    # Delete the created organisation.
+    response = crm.delete_record("Account", new_id)

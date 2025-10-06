@@ -363,7 +363,10 @@ class SuiteCRM:
         """
         entity_name = module_name[:-1] if module_name.endswith("s") else module_name
 
-        response = self._post("/Api/V8/module", json={"data": {"type": module_name, "attributes": record_data}})
+        payload = {"data": {"type": module_name, "attributes": record_data}}
+        if "id" in record_data:
+            payload["data"]["id"] = record_data["id"]
+        response = self._post("/Api/V8/module", json=payload)
 
         if "data" not in response:
             logger.error("Attempt to create record failed: response was missing <data> key")
