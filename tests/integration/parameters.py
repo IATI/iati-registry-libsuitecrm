@@ -1,3 +1,10 @@
 CLIENT_ID = "924b0e3f-57d8-00c0-f023-67fcde903ca5"
 CLIENT_SECRET_HASHED = "300109590f69536a400b77ef698021586bfce6809dd8782da32ade9c45457231"
 CLIENT_SECRET = "secret-123"
+
+SUITECRM_HTTP_URL = "http://localhost:8000"
+SUITECRM_HTTPS_URL = "https://localhost:8443"
+DB_HOST = "localhost"
+DB_NAME = "suitecrm"
+DB_USER = "suitecrm_admin"
+DB_PASSWORD = "password"

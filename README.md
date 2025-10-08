@@ -61,14 +61,7 @@ pip-compile --all-build-deps --strip-extras
 
 ### Testing
 
-Pytest is used for unit and integration testing of the library.  Most of the testing is an integration test that runs using a local instance of SuiteCRM.  At the moment the local instance must be manually started:
-
-```
-cd tests/integration
-docker compose up
-```
-
-Then the tests can be run
+Pytest is used for unit and integration testing of the library.  Most of the testing is an integration test that runs using a local instance of SuiteCRM.  At the moment the local instance must be manually started.  Because this needs to be tested against the IATI fork of SuiteCRM the docker setup has now been removed from this repository.  To test, spin up the test instance from [IATI SuiteCRM](https://github.com/IATI/iati-suitecrm) with ```docker compose up --build``` and then run the tests:
 
 ```
 pytest

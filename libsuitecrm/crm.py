@@ -363,7 +363,10 @@ class SuiteCRM:
         """
         entity_name = module_name[:-1] if module_name.endswith("s") else module_name
 
-        response = self._post("/Api/V8/module", json={"data": {"type": module_name, "attributes": record_data}})
+        payload = {"data": {"type": module_name, "attributes": record_data}}
+        if "id" in record_data:
+            payload["data"]["id"] = record_data["id"]
+        response = self._post("/Api/V8/module", json=payload)
 
         if "data" not in response:
             logger.error("Attempt to create record failed: response was missing <data> key")
@@ -452,7 +455,7 @@ class SuiteCRM:
             logger.error(f"Attempt to delete record failed: '{response["meta"]["message"]}'")
             raise DeleteRecordFailed("Cannot understand response from server")
 
-    def create_relationship(self, module_name: str, id: str, related_module: str, related_id: str):
+    def create_relationship(self, module_name: str, record_id: str, link_field_name: str, related_module_name: str, related_id: str):
         """Create a relationship between records across modules in the CRM
 
         Calls the endpoint documented at:
@@ -464,30 +467,34 @@ class SuiteCRM:
             Module name to create the relationship from.
         id : str
             ID of the record to create the relationship from.
+        link_field_name : str
+            Link field name for the relationship.
         related_module : str
             Module name to create the relationship to.
         related_id : str
             ID of the record to create the relationship to.
         """
         response = self._post(
-            f"/Api/V8/module/{module_name}/{id}/relationships",
-            json={"data": {"type": related_module, "id": related_id}},
+            f"/Api/V8/module/{module_name}/{record_id}/relationships/{link_field_name}",
+            json={"data": {"type": related_module_name, "id": related_id}},
         )
-
+        
         if "meta" not in response:
             logger.error("Attempt to create relationship failed: response was missing <meta> key")
             raise CreateRelationshipFailed("Response missing meta key")
         if "message" not in response["meta"]:
             logger.error("Attempt to create relationship failed: response was missing <meta.message> key")
             raise CreateRelationshipFailed("Response missing meta.message key")
-        if (
-            response["meta"].get("message", "")
-            != f"{related_module} with id {related_id} has been added to {module_name} with id {id}"
+        if not (response["meta"].get("sourceModule","") == module_name
+            and response["meta"].get("sourceId","") == record_id
+            and response["meta"].get("relatedModule","") == related_module_name
+            and response["meta"].get("relatedId","") == related_id
+            and response["meta"].get("relationshipLink","") == link_field_name
         ):
             logger.error(f"Attempt to create relationship failed: '{response["meta"]["message"]}'")
             raise CreateRelationshipFailed("Cannot understand response from server")
 
-    def get_relationship(self, module_name: str, id: str, related_module: str):
+    def get_relationship(self, module_name: str, id: str, link_field_name: str):
         """Get relationships between a record in one module with another module
 
         Calls the endpoint documented at:
@@ -499,13 +506,13 @@ class SuiteCRM:
             Module name to get the relationship from.
         id : str
             ID of the record to get the relationship from.
-        related_module : str
-            Module name to get the relationship to.
+        link_field_name : str
+            Link field name to get the relationships.
         """
-        response = self._get(f"/Api/V8/module/{module_name}/{id}/relationships/{related_module.lower()}")
+        response = self._get(f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}")
         return response
 
-    def delete_relationship(self, module_name: str, id: str, related_module: str, related_id: str):
+    def delete_relationship(self, module_name: str, id: str, link_field_name: str, related_id: str):
         """Delete relationship between records in different modules
 
         Calls the endpoint documented at:
@@ -517,12 +524,12 @@ class SuiteCRM:
             Module name to delete the relationship from.
         id : str
             ID of the record to delete the relationship from.
-        related_module : str
-            Related module name to delete the relationship from.
+        link_field_name : str
+            Link field name to delete the relationship.
         related_id : str
             ID of the related record to delete the relationship from.
         """
-        self._delete(f"/Api/V8/module/{module_name}/{id}/relationships/{related_module.lower()}/{related_id}")
+        self._delete(f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}/{related_id}")
 
     def _request(self, method: str, url: str, params: List[Tuple[str, str]] = None, json: Dict = None):  # noqa: C901
         """Internal method to send requests to SuiteCRM which also handles errors

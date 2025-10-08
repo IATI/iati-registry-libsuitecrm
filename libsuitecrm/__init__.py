@@ -1,7 +1,15 @@
 import logging
 
 from .crm import SuiteCRM
-from .exceptions import CannotUnderstandResponse, RequestFailed
+from .exceptions import (
+    AuthorisationFailed,
+    CannotUnderstandResponse,
+    CreateRecordFailed,
+    CreateRelationshipFailed,
+    DeleteRecordFailed,
+    RequestFailed,
+    UpdateRecordFailed,
+)
 from .filter import Filter
 
 __all__ = [

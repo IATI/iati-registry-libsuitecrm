@@ -3,15 +3,13 @@ from datetime import timedelta
 
 import pymysql
 import pytest
-from parameters import CLIENT_ID, CLIENT_SECRET
+from parameters import CLIENT_ID, CLIENT_SECRET, DB_HOST, DB_NAME, DB_PASSWORD, DB_USER, SUITECRM_HTTPS_URL
 
 import libsuitecrm
 
 
 def test_fetch_access_token_okay(suitecrm_ready):
-    crm = libsuitecrm.SuiteCRM(
-        "https://127.0.0.1:8443/", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False
-    )
+    crm = libsuitecrm.SuiteCRM(SUITECRM_HTTPS_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False)
     crm.fetch_access_token()
     crm.logout()
 
@@ -19,7 +17,7 @@ def test_fetch_access_token_okay(suitecrm_ready):
 def test_fetch_access_token_404(suitecrm_ready):
     with pytest.raises(libsuitecrm.exceptions.AuthorisationFailed) as exc_info:
         crm = libsuitecrm.SuiteCRM(
-            "https://127.0.0.1:8443/wrong_path/", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False
+            SUITECRM_HTTPS_URL + "/wrong_path/", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False
         )
         crm.fetch_access_token()
 
@@ -28,9 +26,7 @@ def test_fetch_access_token_404(suitecrm_ready):
 
 def test_fetch_access_token_insecure(suitecrm_ready):
     with pytest.raises(libsuitecrm.exceptions.AuthorisationFailed) as exc_info:
-        crm = libsuitecrm.SuiteCRM(
-            "https://127.0.0.1:8443/", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=True
-        )
+        crm = libsuitecrm.SuiteCRM(SUITECRM_HTTPS_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=True)
         crm.fetch_access_token()
 
     print(exc_info.value)
@@ -39,18 +35,16 @@ def test_fetch_access_token_insecure(suitecrm_ready):
 
 def test_access_token_expiry(suitecrm_ready):
     # Get an access token.
-    crm = libsuitecrm.SuiteCRM(
-        "https://127.0.0.1:8443/", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False
-    )
+    crm = libsuitecrm.SuiteCRM(SUITECRM_HTTPS_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False)
     crm.fetch_access_token()
 
     # Modify the access token inside the SuiteCRM database to expire 1 second after creation.
     try:
         connection = pymysql.connect(
-            host="localhost",
-            user="root",
-            password="rootpassword",
-            db="suitecrm",
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            db=DB_NAME,
             charset="utf8mb4",
             cursorclass=pymysql.cursors.DictCursor,
         )
