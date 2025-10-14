@@ -9,7 +9,8 @@ import libsuitecrm
 def test_crud_in_accounts(crm):
     random_org_name = make_random_string(15)
 
-    id = crm.create_record("Account", {"name": random_org_name})
+    new_record = crm.create_record("Account", {"name": random_org_name})
+    id = new_record["id"]
     assert isinstance(id, str)
 
     response = crm.get_record_by_id("Account", id, fields=["name"])
@@ -20,7 +21,7 @@ def test_crud_in_accounts(crm):
 
     new_random_org_name = make_random_string(15)
     response = crm.update_record("Account", id, {"name": new_random_org_name})
-    assert response == id
+    assert response["id"] == id
 
     response = crm.get_record_by_id("Account", id, fields=["name"])
     assert "data" in response
@@ -41,7 +42,8 @@ def test_create_with_id(crm):
     # the account is created.
     random_org_name = make_random_string(15)
     new_id = str(uuid.uuid4())
-    created_id = crm.create_record("Account", {"name": random_org_name, "id": new_id})
+    new_record = crm.create_record("Account", {"name": random_org_name, "id": new_id})
+    created_id = new_record["id"]
     assert isinstance(created_id, str)
     assert new_id == created_id
 
