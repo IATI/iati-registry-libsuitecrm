@@ -16,8 +16,12 @@ def test_relationships(crm):
     assert response["meta"].get("total-records", 0) == 2
     assert "data" in response
     assert isinstance(response["data"], list)
-    assert ((response["data"][0]["id"] == contact1_id) and (response["data"][1]["id"] == contact2_id)
-            or (response["data"][0]["id"] == contact2_id) and (response["data"][1]["id"] == contact1_id))
+    assert (
+        (response["data"][0]["id"] == contact1_id)
+        and (response["data"][1]["id"] == contact2_id)
+        or (response["data"][0]["id"] == contact2_id)
+        and (response["data"][1]["id"] == contact1_id)
+    )
 
     response = crm.get_relationship("Account", accountb_id, "contacts")
     assert "meta" in response

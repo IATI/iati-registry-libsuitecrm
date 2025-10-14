@@ -2,7 +2,7 @@
 
 import logging
 import urllib
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import oauthlib.oauth2
 import requests
@@ -343,7 +343,7 @@ class SuiteCRM:
             else:
                 response = None
 
-    def create_record(self, module_name: str, record_data: dict) -> str:
+    def create_record(self, module_name: str, record_data: dict) -> dict[str, Any]:
         """Create a record in a given module in the CRM
 
         Calls the endpoint documented at:
@@ -358,8 +358,8 @@ class SuiteCRM:
 
         Returns
         -------
-        str
-            ID of the created record.
+        dict
+            The object returned by SuiteCRM
         """
         entity_name = module_name[:-1] if module_name.endswith("s") else module_name
 
@@ -382,9 +382,9 @@ class SuiteCRM:
             logger.error("Attempt to create record failed: id not returned in response")
             raise CreateRecordFailed("Cannot understand response from server")
 
-        return response["data"]["id"]
+        return response["data"]
 
-    def update_record(self, module_name: str, id: str, record_data: dict) -> str:
+    def update_record(self, module_name: str, id: str, record_data: dict) -> dict[str, Any]:
         """Update a record in a given module in the CRM
 
         Calls the endpoint documented at:
@@ -401,8 +401,8 @@ class SuiteCRM:
 
         Returns
         -------
-        str
-            ID of the returned record
+        dict
+            The object returned by SuiteCRM
         """
         entity_name = module_name[:-1] if module_name.endswith("s") else module_name
 
@@ -424,7 +424,7 @@ class SuiteCRM:
             logger.error("Attempt to update record failed: id not returned in response")
             raise UpdateRecordFailed("Cannot understand response from server")
 
-        return response["data"]["id"]
+        return response["data"]
 
     def delete_record(self, module_name: str, id: str):
         """Delete a record from a given module in the CRM
@@ -455,7 +455,9 @@ class SuiteCRM:
             logger.error(f"Attempt to delete record failed: '{response["meta"]["message"]}'")
             raise DeleteRecordFailed("Cannot understand response from server")
 
-    def create_relationship(self, module_name: str, record_id: str, link_field_name: str, related_module_name: str, related_id: str):
+    def create_relationship(
+        self, module_name: str, record_id: str, link_field_name: str, related_module_name: str, related_id: str
+    ):
         """Create a relationship between records across modules in the CRM
 
         Calls the endpoint documented at:
@@ -478,18 +480,19 @@ class SuiteCRM:
             f"/Api/V8/module/{module_name}/{record_id}/relationships/{link_field_name}",
             json={"data": {"type": related_module_name, "id": related_id}},
         )
-        
+
         if "meta" not in response:
             logger.error("Attempt to create relationship failed: response was missing <meta> key")
             raise CreateRelationshipFailed("Response missing meta key")
         if "message" not in response["meta"]:
             logger.error("Attempt to create relationship failed: response was missing <meta.message> key")
             raise CreateRelationshipFailed("Response missing meta.message key")
-        if not (response["meta"].get("sourceModule","") == module_name
-            and response["meta"].get("sourceId","") == record_id
-            and response["meta"].get("relatedModule","") == related_module_name
-            and response["meta"].get("relatedId","") == related_id
-            and response["meta"].get("relationshipLink","") == link_field_name
+        if not (
+            response["meta"].get("sourceModule", "") == module_name
+            and response["meta"].get("sourceId", "") == record_id
+            and response["meta"].get("relatedModule", "") == related_module_name
+            and response["meta"].get("relatedId", "") == related_id
+            and response["meta"].get("relationshipLink", "") == link_field_name
         ):
             logger.error(f"Attempt to create relationship failed: '{response["meta"]["message"]}'")
             raise CreateRelationshipFailed("Cannot understand response from server")
