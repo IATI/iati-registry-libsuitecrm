@@ -2,7 +2,7 @@
 
 import logging
 import urllib
-from typing import Any, Dict, List, Tuple
+from typing import Any, List
 
 import oauthlib.oauth2
 import requests
@@ -374,7 +374,7 @@ class SuiteCRM:
             else:
                 response = None
 
-    def create_record(self, module_name: str, record_data: dict) -> dict[str, Any]:
+    def create_record(self, module_name: str, record_data: dict, headers: dict | None = None) -> dict[str, Any]:
         """Create a record in a given module in the CRM
 
         Calls the endpoint documented at:
@@ -386,6 +386,8 @@ class SuiteCRM:
             Module name to create the record in.
         record_data : dict
             Record data to store.
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -397,7 +399,7 @@ class SuiteCRM:
         payload = {"data": {"type": module_name, "attributes": record_data}}
         if "id" in record_data:
             payload["data"]["id"] = record_data["id"]
-        response = self._post("/Api/V8/module", json=payload)
+        response = self._post("/Api/V8/module", json=payload, headers=headers)
 
         if "data" not in response:
             logger.error("Attempt to create record failed: response was missing <data> key")
@@ -415,7 +417,9 @@ class SuiteCRM:
 
         return response["data"]
 
-    def update_record(self, module_name: str, id: str, record_data: dict) -> dict[str, Any]:
+    def update_record(
+        self, module_name: str, id: str, record_data: dict, headers: dict | None = None
+    ) -> dict[str, Any]:
         """Update a record in a given module in the CRM
 
         Calls the endpoint documented at:
@@ -429,6 +433,8 @@ class SuiteCRM:
             ID of the record
         record_data : dict
             Record data to update
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -438,7 +444,9 @@ class SuiteCRM:
         entity_name = module_name[:-1] if module_name.endswith("s") else module_name
 
         response = self._patch(
-            "/Api/V8/module", json={"data": {"type": module_name, "id": id, "attributes": record_data}}
+            "/Api/V8/module",
+            json={"data": {"type": module_name, "id": id, "attributes": record_data}},
+            headers=headers,
         )
 
         if "data" not in response:
@@ -457,7 +465,7 @@ class SuiteCRM:
 
         return response["data"]
 
-    def delete_record(self, module_name: str, id: str):
+    def delete_record(self, module_name: str, id: str, headers: dict | None = None):
         """Delete a record from a given module in the CRM
 
         Calls the endpoint documented at:
@@ -469,9 +477,11 @@ class SuiteCRM:
             Module name to delete the record from.
         id : str
             ID of the record
+        headers : dict, optional
+            Additional headers to include in the request.
         """
 
-        response = self._delete(f"/Api/V8/module/{module_name}/{id}")
+        response = self._delete(f"/Api/V8/module/{module_name}/{id}", headers=headers)
 
         if "meta" not in response:
             logger.error("Attempt to delete record failed: response was missing <meta> key")
@@ -487,7 +497,13 @@ class SuiteCRM:
             raise DeleteRecordFailed("Cannot understand response from server")
 
     def create_relationship(
-        self, module_name: str, record_id: str, link_field_name: str, related_module_name: str, related_id: str
+        self,
+        module_name: str,
+        record_id: str,
+        link_field_name: str,
+        related_module_name: str,
+        related_id: str,
+        headers: dict | None = None,
     ):
         """Create a relationship between records across modules in the CRM
 
@@ -506,10 +522,13 @@ class SuiteCRM:
             Module name to create the relationship to.
         related_id : str
             ID of the record to create the relationship to.
+        headers : dict, optional
+            Additional headers to include in the request.
         """
         response = self._post(
             f"/Api/V8/module/{module_name}/{record_id}/relationships/{link_field_name}",
             json={"data": {"type": related_module_name, "id": related_id}},
+            headers=headers,
         )
 
         if "meta" not in response:
@@ -546,7 +565,9 @@ class SuiteCRM:
         response = self._get(f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}")
         return response
 
-    def delete_relationship(self, module_name: str, id: str, link_field_name: str, related_id: str):
+    def delete_relationship(
+        self, module_name: str, id: str, link_field_name: str, related_id: str, headers: dict | None = None
+    ):
         """Delete relationship between records in different modules
 
         Calls the endpoint documented at:
@@ -562,10 +583,21 @@ class SuiteCRM:
             Link field name to delete the relationship.
         related_id : str
             ID of the related record to delete the relationship from.
+        headers : dict, optional
+            Additional headers to include in the request.
         """
-        self._delete(f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}/{related_id}")
+        self._delete(
+            f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}/{related_id}", headers=headers
+        )
 
-    def _request(self, method: str, url: str, params: List[Tuple[str, str]] = None, json: Dict = None):  # noqa: C901
+    def _request(
+        self,
+        method: str,
+        url: str,
+        params: list[tuple[str, str]] = None,
+        json: Any | None = None,
+        headers: dict | None = None,
+    ):  # noqa: C901
         """Internal method to send requests to SuiteCRM which also handles errors
 
         Parameters
@@ -574,10 +606,12 @@ class SuiteCRM:
             Method to call, "GET", "POST", "PATCH", "DELETE"
         url : str
             URL to call.
-        params : List[Tuple[str,str]], optional
+        params : list[tuple[str,str]], optional
             Parameters to include in the request, default None.
-        params : List[Tuple[str,str]], optional
-            Parameters to include in the request, default None.
+        json : Any, optional
+            A JSON serializable Python object to send in the body, default None.
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -589,61 +623,63 @@ class SuiteCRM:
         RequestFailed
             If the request failed for some reason.
         """
+        response = None
+
         try:
-            response = self._oauth_session.request(method, url, verify=self._secure, params=params, json=json)
+            response = self._oauth_session.request(
+                method, url, verify=self._secure, params=params, json=json, headers=headers
+            )
             response.raise_for_status()
+
+            resp_json = response.json()
 
         except requests.HTTPError:
 
+            error_message = f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} due to an HTTP error"
+
             try:
                 resp_json = response.json()
+                error_detail = f"Details: {resp_json.get('errors', {}).get('detail', '')}"
             except requests.JSONDecodeError as err:
-                raise RequestFailed(
-                    response.status_code,
-                    response.reason,
-                    f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} but "
-                    f"cannot decode JSON response ({response.text})",
-                    str(err),
-                )
+                error_message += f". Additionally, unable to decode JSON response: {response.text}"
+                error_detail = str(err)
 
-            error_detail = ""
-            if "errors" in resp_json:
-                error_detail = resp_json["errors"].get("detail", "")
-            logger.error(
-                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} with "
-                f"HTTP {response.status_code} ({error_detail})"
-            )
-            raise RequestFailed(
-                response.status_code,
-                response.reason,
-                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)}",
-                error_detail,
-            )
+            logger.error(f"{error_message} {response.status_code}. {error_detail}")
+
+            raise RequestFailed(response.status_code, response.reason, error_message, error_detail)
 
         except requests.ConnectionError as err:
+            resp_status_code = None
+            resp_status_reason = None
+            if response is not None:
+                resp_status_code = response.status_code
+                resp_status_reason = response.reason
+
+            error_message = f"Failed {method} from endpoint {urllib.parse.unquote(url)} due to a connection error"
+
+            logger.error(f"{error_message}. {str(err)}")
+
             raise RequestFailed(
-                response.status_code,
-                response.reason,
-                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} as there was a connection error",
+                resp_status_code,
+                resp_status_reason,
+                error_message,
                 str(err),
             )
 
-        try:
-            resp_json = response.json()
         except requests.JSONDecodeError as err:
-            fh = open("dump.txt", "w")
-            fh.write(response.text)
-            fh.close()
-            raise RequestFailed(
-                response.status_code,
-                response.reason,
-                f"Cannot decode response JSON from {method} to endpoint {url}",
-                err.msg,
+
+            error_message = (
+                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} due to "
+                f"being unable to decode response as JSON"
             )
+
+            logger.error(f"{error_message}. {err.msg}")
+
+            raise RequestFailed(response.status_code, response.reason, error_message, err.msg)
 
         return resp_json
 
-    def _get(self, api_endpoint: str, params: List[str] = None):
+    def _get(self, api_endpoint: str, params: list[str] = None):
         """Internal method to send a GET request to SuiteCRM
 
         This method makes a GET request to an API endpoint
@@ -668,7 +704,7 @@ class SuiteCRM:
         """
         return self._request("GET", self._get_url(api_endpoint), params=params)
 
-    def _post(self, api_endpoint: str, json=None):
+    def _post(self, api_endpoint: str, json: Any | None = None, headers: dict | None = None):
         """Internal method to send a POST request to SuiteCRM
 
         This method makes a GET request to an API endpoint
@@ -678,8 +714,10 @@ class SuiteCRM:
         ----------
         api_endpoint : str
             Endpoint to call (which will be added to the base URL)
-        data : dict, optional
-            Dictionary of data to set, default None.
+        json : Any, optional
+            A JSON serializable Python object to send in the body, default None.
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -691,9 +729,9 @@ class SuiteCRM:
         RequestFailed
             If the request failed for some reason.
         """
-        return self._request("POST", self._get_url(api_endpoint), json=json)
+        return self._request("POST", self._get_url(api_endpoint), json=json, headers=headers)
 
-    def _patch(self, api_endpoint, json=None):
+    def _patch(self, api_endpoint: str, json: Any | None = None, headers: dict | None = None):
         """Internal method to send a PATCH request to SuiteCRM
 
         This method makes a PATCH request to an API endpoint
@@ -703,8 +741,10 @@ class SuiteCRM:
         ----------
         api_endpoint : str
             Endpoint to call (which will be added to the base URL)
-        params : List[str]
-            Parameters to include in the request.
+        json : Any, optional
+            A JSON serializable Python object to send in the body, default None.
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -716,9 +756,9 @@ class SuiteCRM:
         RequestFailed
             If the request failed for some reason.
         """
-        return self._request("PATCH", self._get_url(api_endpoint), json=json)
+        return self._request("PATCH", self._get_url(api_endpoint), json=json, headers=headers)
 
-    def _delete(self, api_endpoint):
+    def _delete(self, api_endpoint, headers: dict | None = None):
         """Internal method to send a DELETE request to SuiteCRM
 
         This method makes a DELETE request to an API endpoint
@@ -728,6 +768,8 @@ class SuiteCRM:
         ----------
         api_endpoint : str
             Endpoint to call (which will be added to the base URL)
+        headers : dict, optional
+            Additional headers to include in the request.
 
         Returns
         -------
@@ -739,4 +781,4 @@ class SuiteCRM:
         RequestFailed
             If the request failed for some reason.
         """
-        return self._request("DELETE", self._get_url(api_endpoint))
+        return self._request("DELETE", self._get_url(api_endpoint), headers=headers)
