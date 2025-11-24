@@ -73,10 +73,7 @@ def test_access_token_expiry(suitecrm_ready):
 
     # Wait for the token to expire then call the API.
     time.sleep(5)
-    try:
-        modules = crm.get_modules()
-        assert "Accounts" in modules["data"]["attributes"]
-    except Exception as err:
-        raise err
+    with pytest.raises(libsuitecrm.exceptions.RequestFailed) as exc_info:
+        crm.get_modules()
 
-    crm.logout()
+    assert exc_info.value.status_code == 401
