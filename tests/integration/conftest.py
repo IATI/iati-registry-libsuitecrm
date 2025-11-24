@@ -1,5 +1,6 @@
 import time
 
+import pymysql
 import pytest
 import urllib3
 from helpers import add_oauth_client_credentials, is_suitecrm_installed
@@ -55,7 +56,7 @@ def suitecrm_ready():
         if is_suitecrm_installed(SUITECRM_HTTP_URL):
             installed = True
 
-    if duration > TIMEOUT:
+    if not installed and duration > TIMEOUT:
         raise SuiteCrmReadyTimeout("SuiteCRM timed out; was not ready inside {duration} seconds")
 
     # Try to add OAuth client credentials to the SuiteCRM database.
@@ -65,8 +66,30 @@ def suitecrm_ready():
         raise err
 
 
-@pytest.fixture(scope="module")
-def crm(suitecrm_ready):
+@pytest.fixture(scope="function", autouse=True)
+def clear_tables_used_by_tests(suitecrm_ready) -> None:
+    """Fixture to clear tables used by tests before each test function"""
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            charset="utf8mb4",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute("SET sql_safe_updates = 0")
+            cursor.execute("DELETE FROM accounts_cstm")
+            cursor.execute("DELETE FROM accounts_contacts")
+            cursor.execute("DELETE FROM accounts")
+            cursor.execute("DELETE FROM oauth2tokens")
+            connection.commit()
+    except Exception as err:
+        raise err
+
+
+@pytest.fixture()
+def crm(clear_tables_used_by_tests):
     """Fixture to wait for SuiteCRM to be available and then create a crm object with an access token"""
     urllib3.disable_warnings()
     _crm = libsuitecrm.SuiteCRM(SUITECRM_HTTPS_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, secure=False)
