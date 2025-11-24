@@ -8,24 +8,24 @@ def test_get_record_failures(crm):
         crm.get_record_by_id("Account", "id-that-will-fail")
     assert exc_info.value.status_code == 400
 
-    id = crm.create_record("Account", {"name": "Org Name"})
-    assert isinstance(id, str)
+    record = crm.create_record("Account", {"name": "Org Name"})
+    assert isinstance(record["id"], str)
     with pytest.raises(libsuitecrm.exceptions.RequestFailed) as exc_info:
-        crm.get_record_by_id("Account", id, fields=["non_existant_field_name"])
+        crm.get_record_by_id("Account", record["id"], fields=["non_existant_field_name"])
     assert exc_info.value.status_code == 400
-    crm.delete_record("Account", id)
+    crm.delete_record("Account", record["id"])
 
 
 def test_get_multiple_records(crm):
-    ids = [crm.create_record("Account", {"name": x}) for x in ["A", "B", "C", "D", "E"]]
+    records = [crm.create_record("Account", {"name": x}) for x in ["A", "B", "C", "D", "E"]]
     response = crm.get_records("Accounts", fields=["name", "deleted"], sort_dir="ascending", sort_field="name")
 
     assert "data" in response
     assert isinstance(response["data"], list)
     for index, record in enumerate(response["data"]):
         assert record.get("type", "") == "Account"
-        assert record.get("id", "") == ids[index]
-    [crm.delete_record("Accounts", id) for id in ids]
+        assert record.get("id", "") == records[index]["id"]
+    [crm.delete_record("Accounts", record["id"]) for record in records]
 
 
 def test_filters(crm):
@@ -46,7 +46,7 @@ def test_filters(crm):
                 "billing_address_country": record["country"],
                 "description": record["description"],
             },
-        )
+        )["id"]
 
     response = crm.get_records(
         "Accounts",
