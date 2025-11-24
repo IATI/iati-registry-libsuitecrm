@@ -1,4 +1,5 @@
 import uuid
+from unittest import mock
 
 import pytest
 from helpers import make_random_string
@@ -56,3 +57,92 @@ def test_create_with_id(crm):
 
     # Delete the created organisation.
     response = crm.delete_record("Account", new_id)
+
+
+@pytest.mark.parametrize("headers", [None, {"X-Custom-Header": "CustomValue"}])
+def test_create_custom_headers(crm, headers) -> None:
+
+    org_id = str(uuid.uuid4())
+    org_name = make_random_string(15)
+
+    crm._oauth_session = mock.MagicMock()
+
+    request_response = mock.MagicMock()
+    request_response.json.return_value = {
+        "data": {
+            "id": org_id,
+            "type": "Account",
+            "attributes": {"name": org_name},
+        }
+    }
+    crm._oauth_session.request.return_value = request_response
+
+    crm.create_record("Account", {"name": org_name, "id": org_id}, headers=headers)
+
+    crm._oauth_session.request.assert_called_with(
+        'POST',
+        mock.ANY,  # url
+        verify=mock.ANY,
+        params=mock.ANY,
+        json=mock.ANY,
+        headers=headers
+    )
+
+
+@pytest.mark.parametrize("headers", [None, {"X-Custom-Header": "CustomValue"}])
+def test_update_custom_headers(crm, headers) -> None:
+
+    org_id = str(uuid.uuid4())
+    org_name = make_random_string(15)
+
+    crm._oauth_session = mock.MagicMock()
+
+    request_response = mock.MagicMock()
+    request_response.json.return_value = {
+        "data": {
+            "id": org_id,
+            "type": "Account",
+            "attributes": {"name": org_name},
+        }
+    }
+    crm._oauth_session.request.return_value = request_response
+
+    crm.update_record("Account", org_id, {"name": org_name}, headers=headers)
+
+    crm._oauth_session.request.assert_called_with(
+        'PATCH',
+        mock.ANY,  # url
+        verify=mock.ANY,
+        params=mock.ANY,
+        json=mock.ANY,
+        headers=headers
+    )
+
+
+@pytest.mark.parametrize("headers", [None, {"X-Custom-Header": "CustomValue"}])
+def test_delete_custom_headers(crm, headers) -> None:
+
+    org_id = str(uuid.uuid4())
+    org_name = make_random_string(15)
+
+    crm._oauth_session = mock.MagicMock()
+
+    request_response = mock.MagicMock()
+    request_response.json.return_value = {
+        "meta":
+            {
+                "message": f"Record {org_id} is deleted"
+            }
+    }
+    crm._oauth_session.request.return_value = request_response
+
+    crm.delete_record("Account", org_id, headers=headers)
+
+    crm._oauth_session.request.assert_called_with(
+        'DELETE',
+        mock.ANY,  # url
+        verify=mock.ANY,
+        params=mock.ANY,
+        json=mock.ANY,
+        headers=headers
+    )
