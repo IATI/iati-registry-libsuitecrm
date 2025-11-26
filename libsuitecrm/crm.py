@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple
 import oauthlib.oauth2
 import requests
 import requests_oauthlib
+from oauthlib.oauth2.rfc6749.tokens import OAuth2Token
 
 from .exceptions import (
     AuthorisationFailed,
@@ -46,7 +47,14 @@ def _format_fields(module_name: str, fields: List[str]) -> dict:
 class SuiteCRM:
     """Class to help call the SuiteCRM REST API v8"""
 
-    def __init__(self, api_base_url: str, client_id: str = None, client_secret: str = None, secure: bool = True):
+    def __init__(
+        self,
+        api_base_url: str,
+        client_id: str = None,
+        client_secret: str = None,
+        secure: bool = True,
+        access_token: dict | None = None,
+    ):
         """Setup SuiteCRM REST API communication object
 
         Parameters
@@ -60,6 +68,10 @@ class SuiteCRM:
         secure : bool, optional
           If True then requests will be called with verify=False to enable SSL
           requests with self-signed certificates, default True.
+        access_token : dict[str, Any], optional
+          A dictionary containing the fields that are part of an OAuth2 access
+          token, as exported by export_accesss_token(). (If None, then an access
+          token will need to be fetched using fetch_access_token()).
         """
         self._client_id = client_id
         self._client_secret = client_secret
@@ -72,7 +84,12 @@ class SuiteCRM:
 
         self._oauth_client = oauthlib.oauth2.BackendApplicationClient(client_id=self._client_id)
         self._oauth_session = requests_oauthlib.OAuth2Session(client=self._oauth_client)
-        self._access_token = None
+        if access_token is not None:
+            token = OAuth2Token(params=access_token)
+            self._access_token = token
+            self._oauth_session.token = token
+        else:
+            self._access_token = None
 
     def _get_url(self, path: str) -> str:
         """Make a full URL to an API endpoint
@@ -87,6 +104,20 @@ class SuiteCRM:
         str
         """
         return self._api_base + self._api_base_path + path
+
+    def export_access_token(self) -> dict[str, Any] | None:
+        """Export the current access token as a dictionary
+
+        This can be saved and later restored by passing it to the SuiteCRM
+        constructor.
+
+        Returns
+        -------
+        dict[str, Any] | None
+            Dictionary containing the access token fields if there is a current
+            access token, else None.
+        """
+        return dict(self._access_token) if self._access_token is not None else None
 
     def fetch_access_token(self):
         """Fetch an access token from SuiteCRM
@@ -563,37 +594,31 @@ class SuiteCRM:
             response.raise_for_status()
 
         except requests.HTTPError:
-            if response.status_code == 401:
-                self._fetch_access_token("Refreshing access token")
+
             try:
-                response = self._oauth_session.request(method, url, verify=self._secure, params=params, json=json)
-                response.raise_for_status()
-
-            except requests.HTTPError:
-                try:
-                    resp_json = response.json()
-                except requests.JSONDecodeError as err:
-                    raise RequestFailed(
-                        response.status_code,
-                        response.reason,
-                        f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} but "
-                        f"cannot decode JSON response ({response.text})",
-                        str(err),
-                    )
-
-                error_detail = ""
-                if "errors" in resp_json:
-                    error_detail = resp_json["errors"].get("detail", "")
-                logger.error(
-                    f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} with "
-                    f"HTTP {response.status_code} ({error_detail})"
-                )
+                resp_json = response.json()
+            except requests.JSONDecodeError as err:
                 raise RequestFailed(
                     response.status_code,
                     response.reason,
-                    f"Failed {method} from endpoint {urllib.parse.unquote(response.url)}",
-                    error_detail,
+                    f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} but "
+                    f"cannot decode JSON response ({response.text})",
+                    str(err),
                 )
+
+            error_detail = ""
+            if "errors" in resp_json:
+                error_detail = resp_json["errors"].get("detail", "")
+            logger.error(
+                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)} with "
+                f"HTTP {response.status_code} ({error_detail})"
+            )
+            raise RequestFailed(
+                response.status_code,
+                response.reason,
+                f"Failed {method} from endpoint {urllib.parse.unquote(response.url)}",
+                error_detail,
+            )
 
         except requests.ConnectionError as err:
             raise RequestFailed(
