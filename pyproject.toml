@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "libsuitecrm"
 description = "Library for interfacing with the SuiteCRM REST API focused on applications within IATI"
 authors = [{name="IATI Secretariat", email="support@iatistandard.org"}]
-version = "0.3.0"
+version = "0.4.0"
 requires-python = ">= 3.12.3"
 readme = "README.md"
 license = {file = "LICENSE"}
