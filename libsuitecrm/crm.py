@@ -702,7 +702,12 @@ class SuiteCRM:
         RequestFailed
             If the request failed for some reason.
         """
-        return self._request("GET", self._get_url(api_endpoint), params=params)
+        response = self._request("GET", self._get_url(api_endpoint), params=params)
+
+        if "data" in response and "attributes" in response["data"]:
+            self._fix_escaped_chars_in_response(response["data"]["attributes"])
+
+        return response
 
     def _post(self, api_endpoint: str, json: Any | None = None, headers: dict | None = None):
         """Internal method to send a POST request to SuiteCRM
@@ -782,3 +787,37 @@ class SuiteCRM:
             If the request failed for some reason.
         """
         return self._request("DELETE", self._get_url(api_endpoint), headers=headers)
+
+    def _fix_escaped_chars_in_response(self, response_data: dict | list):
+        """Internal method to fix escaped HTML characters in SuiteCRM response in-place
+
+        Parameters
+        ----------
+        response_data : dict | list
+            Response or part of response data from SuiteCRM.
+
+        Returns
+        -------
+        None
+        """
+
+        def _iter_kv(obj):
+            if isinstance(obj, dict):
+                return obj.items()
+            else:
+                return enumerate(obj)
+
+        def _fix_escaped_string(s: str) -> str:
+            return (
+                s.replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", '"')
+                .replace("&#39;", "'")
+                .replace("&#039;", "'")
+            )
+
+        for index_key, item in _iter_kv(response_data):
+            if isinstance(item, str):
+                response_data[index_key] = _fix_escaped_string(item)
+            elif isinstance(item, dict) or isinstance(item, list):
+                self._fix_escaped_chars_in_response(response_data[index_key])
