@@ -72,7 +72,7 @@ def test_access_token_expiry(suitecrm_ready):
         raise err
 
     # Wait for the token to expire then call the API.
-    time.sleep(5)
+    time.sleep(2)
     with pytest.raises(libsuitecrm.exceptions.RequestFailed) as exc_info:
         crm.get_modules()
 
