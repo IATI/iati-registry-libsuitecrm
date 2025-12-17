@@ -105,6 +105,52 @@ class SuiteCRM:
         """
         return self._api_base + self._api_base_path + path
 
+    def _add_paging_params(self, params: list[tuple[str, str]], page_number: int, page_size: int) -> None:
+        """Internal method to add paging parameters to a list of parameters
+
+        Parameters
+        ----------
+        params : list[tuple[str, str]]
+            List of parameters to add to.
+        page_number : int
+            Page number to add.
+        page_size : int
+            Page size to add.
+
+        Returns
+        -------
+        None
+        """
+        if page_number is not None and page_size is not None:
+            params.append(("page[number]", page_number))
+            params.append(("page[size]", page_size))
+
+    def _add_sorting_params(self, params: list[tuple[str, str]], sort_dir: str, sort_field: str) -> None:
+        """Internal method to add sorting parameters to a list of parameters
+
+        Parameters
+        ----------
+        params : list[tuple[str, str]]
+            List of parameters to add to.
+        sort_dir : str
+            Sort direction to add.
+        sort_field : str
+            Sort field to add.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If sort direction is invalid.
+        """
+        if sort_field is not None:
+            if not (sort_dir == "ascending" or sort_dir == "descending"):
+                raise ValueError("Sort direction must be either ascending or descending")
+            params.append(("sort", ("-" if sort_dir == "descending" else "") + sort_field))
+
     def export_access_token(self) -> dict[str, Any] | None:
         """Export the current access token as a dictionary
 
@@ -302,13 +348,11 @@ class SuiteCRM:
         params = []
         if fields is not None:
             params += _format_fields(module_name, fields)
-        if page_number is not None and page_size is not None:
-            params.append(("page[number]", page_number))
-            params.append(("page[size]", page_size))
-        if sort_field is not None:
-            if not (sort_dir == "ascending" or sort_dir == "descending"):
-                raise ValueError("Sort direction must be either ascending or descending")
-            params.append(("sort", ("-" if sort_dir == "descending" else "") + sort_field))
+
+        self._add_paging_params(params, page_number, page_size)
+
+        self._add_sorting_params(params, sort_dir, sort_field)
+
         if filters is not None:
             [params.append(x) for x in filters.operations]
 
@@ -547,7 +591,16 @@ class SuiteCRM:
             logger.error(f"Attempt to create relationship failed: '{response["meta"]["message"]}'")
             raise CreateRelationshipFailed("Cannot understand response from server")
 
-    def get_relationship(self, module_name: str, id: str, link_field_name: str):
+    def get_relationship(
+        self,
+        module_name: str,
+        id: str,
+        link_field_name: str,
+        page_number: int = None,
+        page_size: int = None,
+        sort_dir: str = "ascending",
+        sort_field: str = None,
+    ):
         """Get relationships between a record in one module with another module
 
         Calls the endpoint documented at:
@@ -561,8 +614,25 @@ class SuiteCRM:
             ID of the record to get the relationship from.
         link_field_name : str
             Link field name to get the relationships.
+        page_number : int, optional
+            Page number to return, when page_size is not None, by default None.
+        page_size : int, optional
+            Number of records per page, when page_number is not None, by default None.
+        sort_dir : str, optional
+            Search direction, "ascending" or "descending", by default "ascending".
+        sort_field : str, optional
+            Field to sort on, by default None.
         """
-        response = self._get(f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}")
+        params = []
+
+        self._add_paging_params(params, page_number, page_size)
+
+        self._add_sorting_params(params, sort_dir, sort_field)
+
+        response = self._get(
+            f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}", params=params
+        )
+
         return response
 
     def delete_relationship(
