@@ -113,7 +113,6 @@ def test_update_custom_headers(crm, headers) -> None:
 def test_delete_custom_headers(crm, headers) -> None:
 
     org_id = str(uuid.uuid4())
-    org_name = make_random_string(15)
 
     crm._oauth_session = mock.MagicMock()
 

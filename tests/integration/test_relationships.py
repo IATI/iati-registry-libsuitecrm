@@ -78,7 +78,7 @@ def _create_account_contacts_and_relationships(crm, num_contacts: int):
         contact = crm.create_record("Contact", {"last_name": f"Contact {contact_idx}"})
         contacts.append(contact)
 
-    account = crm.create_record("Account", {"name": f"Organisation 1"})
+    account = crm.create_record("Account", {"name": "Organisation 1"})
 
     for contact in contacts:
         crm.create_relationship("Accounts", account["id"], "contacts", "Contacts", contact["id"])
