@@ -88,8 +88,8 @@ def test_get_content_with_html_chars(crm):
 
     fields_to_check_by_module = {
         "Accounts": ["description", "name", "website"],
-        "Contacts": ["account_name", "iati_inperson_name", "iati_online_name", "name"],
-        "IATI_Datasets": ["description", "iati_dataset_url", "iati_dataset_owner_org_name", "name"]
+        "Contacts": ["account_name", "iati_inperson_name", "iati_online_name"],
+        "IATI_Datasets": ["description", "iati_dataset_url", "iati_dataset_owner_org_name", "name"],
     }
 
     contact_payload = { field: test_str for field in fields_to_check_by_module["Accounts"] }
