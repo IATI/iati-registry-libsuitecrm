@@ -84,7 +84,7 @@ def test_filters(crm):
 
 
 def test_get_content_with_html_chars(crm):
-    test_str = 'Test special chars: <, >, &, ", \''
+    test_str = "Test special chars: <, >, &, \", '"
 
     fields_to_check_by_module = {
         "Accounts": ["description", "name", "website"],
@@ -92,23 +92,25 @@ def test_get_content_with_html_chars(crm):
         "IATI_Datasets": ["description", "iati_dataset_url", "iati_dataset_owner_org_name", "name"],
     }
 
-    contact_payload = { field: test_str for field in fields_to_check_by_module["Accounts"] }
+    contact_payload = {field: test_str for field in fields_to_check_by_module["Accounts"]}
 
     account = crm.create_record("Accounts", contact_payload)
 
-    contact_payload = { field: test_str for field in fields_to_check_by_module["Contacts"] }
+    contact_payload = {field: test_str for field in fields_to_check_by_module["Contacts"]}
 
     contact = crm.create_record("Contacts", contact_payload)
 
     crm.create_relationship("Accounts", account["id"], "contacts", "Contacts", contact["id"])
 
-    dataset_payload = { field: test_str for field in fields_to_check_by_module["IATI_Datasets"] }
+    dataset_payload = {field: test_str for field in fields_to_check_by_module["IATI_Datasets"]}
 
     dataset = crm.create_record("IATI_Datasets", dataset_payload)
 
     crm.create_relationship("Accounts", account["id"], "account_iati_datasets", "IATI_Datasets", dataset["id"])
 
-    crm.create_relationship("IATI_Datasets", dataset["id"], "iati_dataset_creator_person_link", "Contacts", contact["id"])
+    crm.create_relationship(
+        "IATI_Datasets", dataset["id"], "iati_dataset_creator_person_link", "Contacts", contact["id"]
+    )
 
     for module, id in zip(fields_to_check_by_module.keys(), [account["id"], contact["id"], dataset["id"]]):
         fields = fields_to_check_by_module[module]
