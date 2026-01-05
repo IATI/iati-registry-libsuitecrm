@@ -600,6 +600,7 @@ class SuiteCRM:
         page_size: int = None,
         sort_dir: str = "ascending",
         sort_field: str = None,
+        filters: Filter = None,
     ):
         """Get relationships between a record in one module with another module
 
@@ -628,6 +629,9 @@ class SuiteCRM:
         self._add_paging_params(params, page_number, page_size)
 
         self._add_sorting_params(params, sort_dir, sort_field)
+
+        if filters is not None:
+            [params.append(x) for x in filters.operations]
 
         response = self._get(
             f"/Api/V8/module/{module_name}/{id}/relationships/{link_field_name.lower()}", params=params
