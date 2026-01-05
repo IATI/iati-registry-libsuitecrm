@@ -1,3 +1,6 @@
+from libsuitecrm import Filter
+
+
 def test_relationships(crm):
     contact1 = crm.create_record("Contact", {"last_name": "Contact One"})
     contact2 = crm.create_record("Contact", {"last_name": "Contact Two"})
@@ -131,5 +134,23 @@ def test_get_relationships_sorting(crm):
         sort_dir="descending",
     )
     assert relationships["data"][0]["attributes"]["last_name"] == "Contact 9"
+
+    _delete_records(crm, [account] + contacts)
+
+
+def test_get_relationships_filtering(crm):
+    account, contacts = _create_account_contacts_and_relationships(crm, 9)
+
+    relationships = crm.get_relationship(
+        "Contacts", contacts[0]["id"], "Accounts", filters=Filter().equal("name", "Organisation 1")
+    )
+
+    assert len(relationships["data"]) == 1
+
+    relationships = crm.get_relationship(
+        "Contacts", contacts[0]["id"], "Accounts", filters=Filter().equal("name", "Organisation Unknown")
+    )
+
+    assert len(relationships["data"]) == 0
 
     _delete_records(crm, [account] + contacts)
