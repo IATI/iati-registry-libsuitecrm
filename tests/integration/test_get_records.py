@@ -92,9 +92,9 @@ def test_get_content_with_html_chars(crm):
         "IATI_Datasets": ["description", "iati_dataset_url", "iati_dataset_owner_org_name", "name"],
     }
 
-    contact_payload = {field: test_str for field in fields_to_check_by_module["Accounts"]}
+    account_payload = {field: test_str for field in fields_to_check_by_module["Accounts"]}
 
-    account = crm.create_record("Accounts", contact_payload)
+    account = crm.create_record("Accounts", account_payload)
 
     contact_payload = {field: test_str for field in fields_to_check_by_module["Contacts"]}
 
