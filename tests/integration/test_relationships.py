@@ -1,3 +1,6 @@
+from libsuitecrm import Filter
+
+
 def test_relationships(crm):
     contact1 = crm.create_record("Contact", {"last_name": "Contact One"})
     contact2 = crm.create_record("Contact", {"last_name": "Contact Two"})
@@ -70,3 +73,84 @@ def test_relationships(crm):
     crm.delete_record("Contact", contact2["id"])
     crm.delete_record("Account", accounta["id"])
     crm.delete_record("Account", accountb["id"])
+
+
+def _create_account_contacts_and_relationships(crm, num_contacts: int):
+    contacts: dict = []
+    for contact_idx in range(1, num_contacts + 1):
+        contact = crm.create_record("Contact", {"last_name": f"Contact {contact_idx}"})
+        contacts.append(contact)
+
+    account = crm.create_record("Account", {"name": "Organisation 1"})
+
+    for contact in contacts:
+        crm.create_relationship("Accounts", account["id"], "contacts", "Contacts", contact["id"])
+
+    return account, contacts
+
+
+def _delete_records(crm, records):
+    for record in records:
+        crm.delete_record(record["type"], record["id"])
+
+
+def test_get_relationships_paging_returns_correct_num(crm):
+    account, contacts = _create_account_contacts_and_relationships(crm, 9)
+
+    for page_size in [None, 3, 4, 5]:
+        relationships = crm.get_relationship("Accounts", account["id"], "contacts", page_size=page_size, page_number=1)
+        assert len(relationships["data"]) == 9 if page_size is None else page_size
+
+    _delete_records(crm, [account] + contacts)
+
+
+def test_get_relationships_paging_returns_correct_content(crm):
+    account, contacts = _create_account_contacts_and_relationships(crm, 9)
+
+    relationships = crm.get_relationship(
+        "Accounts", account["id"], "contacts", page_size=2, page_number=3, sort_field="last_name", sort_dir="ascending"
+    )
+    assert relationships["data"][0]["attributes"]["last_name"] == "Contact 5"
+    assert relationships["data"][1]["attributes"]["last_name"] == "Contact 6"
+
+    _delete_records(crm, [account] + contacts)
+
+
+def test_get_relationships_sorting(crm):
+    account, contacts = _create_account_contacts_and_relationships(crm, 9)
+
+    relationships = crm.get_relationship(
+        "Accounts", account["id"], "contacts", page_size=1, page_number=1, sort_field="last_name", sort_dir="ascending"
+    )
+    assert relationships["data"][0]["attributes"]["last_name"] == "Contact 1"
+
+    relationships = crm.get_relationship(
+        "Accounts",
+        account["id"],
+        "contacts",
+        page_size=1,
+        page_number=1,
+        sort_field="last_name",
+        sort_dir="descending",
+    )
+    assert relationships["data"][0]["attributes"]["last_name"] == "Contact 9"
+
+    _delete_records(crm, [account] + contacts)
+
+
+def test_get_relationships_filtering(crm):
+    account, contacts = _create_account_contacts_and_relationships(crm, 9)
+
+    relationships = crm.get_relationship(
+        "Contacts", contacts[0]["id"], "Accounts", filters=Filter().equal("name", "Organisation 1")
+    )
+
+    assert len(relationships["data"]) == 1
+
+    relationships = crm.get_relationship(
+        "Contacts", contacts[0]["id"], "Accounts", filters=Filter().equal("name", "Organisation Unknown")
+    )
+
+    assert len(relationships["data"]) == 0
+
+    _delete_records(crm, [account] + contacts)

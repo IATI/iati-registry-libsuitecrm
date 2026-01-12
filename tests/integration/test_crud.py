@@ -80,12 +80,7 @@ def test_create_custom_headers(crm, headers) -> None:
     crm.create_record("Account", {"name": org_name, "id": org_id}, headers=headers)
 
     crm._oauth_session.request.assert_called_with(
-        'POST',
-        mock.ANY,  # url
-        verify=mock.ANY,
-        params=mock.ANY,
-        json=mock.ANY,
-        headers=headers
+        "POST", mock.ANY, verify=mock.ANY, params=mock.ANY, json=mock.ANY, headers=headers  # url
     )
 
 
@@ -110,12 +105,7 @@ def test_update_custom_headers(crm, headers) -> None:
     crm.update_record("Account", org_id, {"name": org_name}, headers=headers)
 
     crm._oauth_session.request.assert_called_with(
-        'PATCH',
-        mock.ANY,  # url
-        verify=mock.ANY,
-        params=mock.ANY,
-        json=mock.ANY,
-        headers=headers
+        "PATCH", mock.ANY, verify=mock.ANY, params=mock.ANY, json=mock.ANY, headers=headers  # url
     )
 
 
@@ -123,26 +113,15 @@ def test_update_custom_headers(crm, headers) -> None:
 def test_delete_custom_headers(crm, headers) -> None:
 
     org_id = str(uuid.uuid4())
-    org_name = make_random_string(15)
 
     crm._oauth_session = mock.MagicMock()
 
     request_response = mock.MagicMock()
-    request_response.json.return_value = {
-        "meta":
-            {
-                "message": f"Record {org_id} is deleted"
-            }
-    }
+    request_response.json.return_value = {"meta": {"message": f"Record {org_id} is deleted"}}
     crm._oauth_session.request.return_value = request_response
 
     crm.delete_record("Account", org_id, headers=headers)
 
     crm._oauth_session.request.assert_called_with(
-        'DELETE',
-        mock.ANY,  # url
-        verify=mock.ANY,
-        params=mock.ANY,
-        json=mock.ANY,
-        headers=headers
+        "DELETE", mock.ANY, verify=mock.ANY, params=mock.ANY, json=mock.ANY, headers=headers  # url
     )
