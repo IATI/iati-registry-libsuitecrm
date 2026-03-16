@@ -29,6 +29,10 @@ class Filter:
         self._operations.append((f"filter[{field}][lte]", value))
         return self
 
+    def like(self, field: str, value: str):
+        self._operations.append((f"filter[{field}][like]", value))
+        return self
+
     def op_and(self):
         self._operations.append(("filter[operator]", "and"))
         return self
