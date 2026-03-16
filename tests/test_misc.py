@@ -21,6 +21,8 @@ def test_operators():
         .lt("e", 10)
         .op_or()
         .lte("f", 100)
+        .op_or()
+        .like("g", "query")
         .operations
     )
     assert filters[0] == ("filter[a][neq]", "0")
@@ -34,3 +36,5 @@ def test_operators():
     assert filters[8] == ("filter[e][lt]", 10)
     assert filters[9] == ("filter[operator]", "or")
     assert filters[10] == ("filter[f][lte]", 100)
+    assert filters[11] == ("filter[operator]", "or")
+    assert filters[12] == ("filter[g][like]", "query")
