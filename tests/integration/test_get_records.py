@@ -125,6 +125,14 @@ def test_get_content_with_html_chars(crm):
         "IATI_Datasets": ["description", "iati_dataset_url", "iati_dataset_owner_org_name", "name"],
     }
 
+    def check_records(id: str, records: list[dict], fields: list, test_str):
+        for record in records:
+            if record["id"] == id:
+                for field in fields:
+                    assert "attributes" in record
+                    assert field in record["attributes"]
+                    assert record["attributes"][field] == test_str
+
     account_payload = {field: test_str for field in fields_to_check_by_module["Accounts"]}
 
     account = crm.create_record("Accounts", account_payload)
@@ -148,11 +156,20 @@ def test_get_content_with_html_chars(crm):
     for module, id in zip(fields_to_check_by_module.keys(), [account["id"], contact["id"], dataset["id"]]):
         fields = fields_to_check_by_module[module]
 
-        fetched_record = crm.get_record_by_id(module, id, fields=fields)
+        # check SuiteCRM single record response
+        records = [crm.get_record_by_id(module, id, fields=fields)["data"]]
 
-        for field in fields:
-            assert field in fetched_record["data"]["attributes"]
-            assert fetched_record["data"]["attributes"][field] == test_str
+        check_records(id, records, fields, test_str)
+
+        # check SuiteCRM list response
+        records = crm.get_records(module, fields=fields)["data"]
+
+        check_records(id, records, fields, test_str)
+
+        # check SuiteCRM generator based response from get_all_records
+        records = crm.get_all_records(module, fields=fields)
+
+        check_records(id, records, fields, test_str)
 
     crm.delete_record("Accounts", account["id"])
     crm.delete_record("Contacts", contact["id"])
