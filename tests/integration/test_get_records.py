@@ -57,8 +57,6 @@ def test_filters(crm):
     )
     assert "data" in response
     assert isinstance(response["data"], list)
-    # print(test_records)
-    # [print(x["id"]) for x in response["data"]]
     assert len(response["data"]) == 2
     assert response["data"][0]["id"] == test_records[0]["id"]
     assert response["data"][1]["id"] == test_records[1]["id"]
@@ -75,8 +73,6 @@ def test_filters(crm):
     )
     assert "data" in response
     assert isinstance(response["data"], list)
-    # print(test_records)
-    # [print(x["id"]) for x in response["data"]]
     assert len(response["data"]) == 1
     assert response["data"][0]["id"] == test_records[5]["id"]
 
@@ -111,8 +107,6 @@ def test_filter_like(crm):
     )
     assert "data" in response
     assert isinstance(response["data"], list)
-    # print(test_records)
-    # [print(x["id"]) for x in response["data"]]
     assert len(response["data"]) == 3
     assert response["data"][0]["id"] == test_records[3]["id"]
     assert response["data"][1]["id"] == test_records[4]["id"]
