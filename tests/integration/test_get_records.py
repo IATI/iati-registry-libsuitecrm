@@ -57,8 +57,6 @@ def test_filters(crm):
     )
     assert "data" in response
     assert isinstance(response["data"], list)
-    # print(test_records)
-    # [print(x["id"]) for x in response["data"]]
     assert len(response["data"]) == 2
     assert response["data"][0]["id"] == test_records[0]["id"]
     assert response["data"][1]["id"] == test_records[1]["id"]
@@ -75,12 +73,47 @@ def test_filters(crm):
     )
     assert "data" in response
     assert isinstance(response["data"], list)
-    # print(test_records)
-    # [print(x["id"]) for x in response["data"]]
     assert len(response["data"]) == 1
     assert response["data"][0]["id"] == test_records[5]["id"]
 
     [crm.delete_record("Accounts", record["id"]) for record in test_records]
+
+
+def test_filter_like(crm):
+    test_records = [
+        {"name": "UK Person A", "country": "UK", "description": "Text 1"},
+        {"name": "UK Person B", "country": "UK", "description": "Text 1"},
+        {"name": "UK Person C", "country": "UK", "description": "Text 2"},
+        {"name": "German Person D", "country": "Germany", "description": "Text 1"},
+        {"name": "German Person E", "country": "Germany", "description": "Text 1"},
+        {"name": "German Person F", "country": "Germany", "description": "Text 2"},
+    ]
+
+    for index, record in enumerate(test_records):
+        test_records[index]["id"] = crm.create_record(
+            "Account",
+            {
+                "name": record["name"],
+                "description": record["description"],
+            },
+        )["id"]
+
+    response = crm.get_records(
+        "Accounts",
+        fields=["name", "description"],
+        sort_dir="ascending",
+        sort_field="name",
+        filters=libsuitecrm.Filter().like("name", "German%"),
+    )
+    assert "data" in response
+    assert isinstance(response["data"], list)
+    assert len(response["data"]) == 3
+    assert response["data"][0]["id"] == test_records[3]["id"]
+    assert response["data"][1]["id"] == test_records[4]["id"]
+    assert response["data"][2]["id"] == test_records[5]["id"]
+
+    for record in test_records:
+        crm.delete_record("Accounts", record["id"])
 
 
 def test_get_content_with_html_chars(crm):
