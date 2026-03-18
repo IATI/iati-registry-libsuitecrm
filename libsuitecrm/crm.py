@@ -778,8 +778,13 @@ class SuiteCRM:
         """
         response = self._request("GET", self._get_url(api_endpoint), params=params)
 
-        if "data" in response and "attributes" in response["data"]:
-            self._fix_escaped_chars_in_response(response["data"]["attributes"])
+        if "data" in response:
+            if isinstance(response["data"], dict) and "attributes" in response["data"]:
+                self._fix_escaped_chars_in_response(response["data"]["attributes"])
+            if isinstance(response["data"], list):
+                for idx in range(len(response["data"])):
+                    if "attributes" in response["data"][idx]:
+                        self._fix_escaped_chars_in_response(response["data"][idx]["attributes"])
 
         return response
 
